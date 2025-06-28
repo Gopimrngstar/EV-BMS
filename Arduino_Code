@@ -1,0 +1,346 @@
+//IOT Based Battery Management System and Protection
+#include<SoftwareSerial.h>
+#include<LiquidCrystal.h>
+SoftwareSerial ESP11(2,3);
+LiquidCrystal lcd(8,9,4,5,6,7);
+#include <Adafruit_Sensor.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS A3
+OneWire oneWire(ONE_WIRE_BUS);  
+DallasTemperature sensors(&oneWire);
+#define DEBUG true                                                    
+// WIFI SHIELD DECLARATION
+String ssid = "\"wifi008\"";
+String pass = "\"12345678\"";
+String tcp = "\"TCP\"";
+String remoteip = "\"iot-projects.eweb.org.in\"";
+String portnum = "80";
+int cel=0;
+float mv1,mv2=0;
+float bv,cv=0;
+int bc,cc=0;
+int md=0;
+int ir=A4;
+int f=A5;
+int fire=0;
+int swell=0;
+//int load=10;
+void setup()
+{
+
+  Serial.begin(115200);
+  ESP11.begin(115200);
+  lcd.begin(20,4);
+  sensors.begin();
+  pinMode(10,OUTPUT);
+  digitalWrite(10,LOW);
+  pinMode(11,OUTPUT);
+  digitalWrite(11,LOW);
+  pinMode(13,OUTPUT);
+  digitalWrite(13,LOW);
+  pinMode(12,INPUT);
+  lcd.setCursor(2,0);
+  lcd.print("  EV Battery  ");
+  lcd.setCursor(2,1);
+  lcd.print("Management IoT");
+  delay(3000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("  Loading!....");
+  sendData("AT+CWMODE=3\r\n",2000,DEBUG); // configure as access point and Client
+  lcd.setCursor(0,1);
+  lcd.print("      20%   ");
+  sendData("AT+RST\r\n",2000,DEBUG); // reset module
+  sendData("AT+GMR\r\n",2000,DEBUG); // View version Info
+  lcd.setCursor(0,1);
+  lcd.print("      40%   ");
+  sendData("AT+CWLAP\r\n",3000,DEBUG); // List all available AP's*/
+  lcd.setCursor(0,1);
+  lcd.print("      60%  ");
+  sendData("AT+GMR\r\n",2000,DEBUG); // View version Info
+  lcd.setCursor(0,1);
+  lcd.print("      90%   ");
+  sent();
+  delay(3000);
+  
+ }
+ void loop()
+{  
+   fire=0;
+   swell=0;
+   sensors.requestTemperatures(); 
+   cel = ((sensors.getTempCByIndex(0)));
+   mv2=analogRead(A1);
+   cv=(mv2/1023)*50;
+   mv1=analogRead(A0);
+   bv=(mv1/1023)*50;
+   bc=analogRead(A2)/2;
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("BV:      BC:");
+   lcd.setCursor(0,1);
+   lcd.print("CV:      ");
+   lcd.setCursor(0,2);
+   lcd.print("TP:      ");
+   lcd.setCursor(0,3);
+   lcd.print("ST:Nor    M:");
+   lcd.setCursor(3,0);
+   lcd.print("   ");
+   lcd.setCursor(3,0);
+   lcd.print(bv);
+   lcd.setCursor(12,0);
+   lcd.print("    ");
+   lcd.setCursor(12,0);
+   lcd.print(bc);
+   lcd.setCursor(3,1);
+   lcd.print("   ");
+   lcd.setCursor(3,1);
+   lcd.print(cv);
+   //lcd.setCursor(12,1);
+  //lcd.print(cc);
+  lcd.setCursor(3,2);
+  lcd.print(cel);
+  sent();
+  sent();
+delay(1000);
+if(digitalRead(12))
+{
+  md=1;
+  lcd.setCursor(12,3);
+  lcd.print("CM");
+  digitalWrite(10,HIGH);
+  
+if(cv>=15)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("High Charging ");
+  lcd.setCursor(0,1);
+  lcd.print("Voltage Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(10,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  
+  }
+  
+if(cv<10)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Low Charging ");
+  lcd.setCursor(0,1);
+  lcd.print("Voltage Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(10,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  
+  }
+  /*
+if(cc>80)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("High Charging ");
+  lcd.setCursor(0,1);
+  lcd.print("Current Detected");
+  digitalWrite(10,LOW);
+  digitalWrite(11,HIGH);
+  sent();
+  sent();
+  digitalWrite(11,LOW);
+  while(1);
+  
+  }*/
+}
+
+else
+{
+  md=0;
+  lcd.setCursor(12,3);
+  lcd.print("BM");
+  digitalWrite(11,HIGH);
+  
+  delay(200);
+if(bv>=15)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("High Battery ");
+  lcd.setCursor(0,1);
+  lcd.print("Voltage Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(11,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  
+  }
+  
+if(bv<10)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Low Battery ");
+  lcd.setCursor(0,1);
+  lcd.print("Voltage Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(11,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  
+  }
+  
+if(bc>80)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("High Battery ");
+  lcd.setCursor(0,1);
+  lcd.print("Current Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(11,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  
+  }
+}
+if(cel>40)
+{
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("EV Battery High ");
+  lcd.setCursor(0,1);
+  lcd.print("Temperature Detected");
+  lcd.setCursor(0,2);
+  lcd.print("Battery Disconnected");
+  digitalWrite(10,LOW);
+  digitalWrite(11,LOW);
+  digitalWrite(13,HIGH);
+  sent();
+  sent();
+  digitalWrite(13,LOW);
+  while(1);
+  }
+  if (digitalRead(ir))
+ {  swell=1;
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("  EV Battery");
+    lcd.setCursor(0,1);
+    lcd.print("  Bursted   ");
+    lcd.setCursor(0,2);
+    lcd.print("Battery Disconnected");
+    digitalWrite(10,LOW);
+    digitalWrite(11,LOW);
+    digitalWrite(13,HIGH);
+        sent();
+    delay(3000);
+    digitalWrite(13,LOW);
+    while(1);
+  
+  }
+  else
+  {
+    swell=0;
+    }
+     if(!digitalRead(f))
+   {
+    fire=1;
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print(" EV Battery");
+    lcd.setCursor(0,1);
+    lcd.print(" Fire Detected  ");
+    lcd.setCursor(0,2);
+    lcd.print("Battery Disconnected");
+    digitalWrite(10,LOW);
+    digitalWrite(11,LOW);
+    digitalWrite(13,HIGH);
+    sent();
+    delay(3000);
+    digitalWrite(13,LOW);
+    while(1);
+  
+  }
+  else
+  {
+    fire=0;
+    }
+  sent();
+  delay(1000);
+} 
+String sendData(String command, const int timeout, boolean debug)
+{
+
+    String response = ""; // ESP8266 sendData String
+    Serial.print(command); // send the read character to the esp8266
+
+   }
+
+    if(debug)
+    {
+  
+    }
+    return response;
+}
+
+void sent()
+{
+  sendData("AT+CIPSTART="+ tcp +"," + remoteip + "," + portnum + "\r\n",1000,DEBUG); 
+  String getStr = "GET /anna_tvl/Ev_battery/update.php?bv="; 
+  getStr+=bv;
+  getStr+="&bc=";
+  getStr+=bc;
+  getStr+="&cv=";
+  getStr+=cv;
+//  getStr+="&cc=";
+//  getStr+=cc;
+  getStr+="&bt=";
+  getStr+=cel;
+  getStr+="&ir=";
+  getStr+=swell;
+  getStr+="&fire=";
+  getStr+=fire;
+  getStr+="&md=";
+  getStr+=md;
+  getStr+=" HTTP/1.1\r\nHost:iot-projects.eweb.org.in \r\n\r\n";
+  getStr += "\r\n\r\n";
+  String cmd;
+  // send data length
+  cmd = "AT+CIPSEND=";
+  cmd += String(getStr.length());
+  sendData(cmd + "\r\n",1000,DEBUG);
+  sendData(getStr,1000,DEBUG);//200
+ 
+}
+
+  
